@@ -1,0 +1,364 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:soundguide_app/constants/app_colors.dart';
+import 'package:soundguide_app/constants/persona_config.dart';
+import 'package:soundguide_app/providers/auth_provider.dart';
+import 'package:soundguide_app/views/widgets/persona_slice.dart';
+
+class LandingPage extends StatefulWidget {
+  const LandingPage({super.key});
+
+  @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _expandController;
+  late Animation<double> _expandAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _expandController = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    );
+
+    _expandAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _expandController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _expandController.dispose();
+    super.dispose();
+  }
+
+  void _onPersonaTap(BuildContext context, UserType userType) {
+    final authProvider = context.read<AuthProvider>();
+    authProvider.selectPersona(userType);
+    _expandController.forward();
+  }
+
+  void _onBackPress(BuildContext context) {
+    _expandController.reverse();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        context.read<AuthProvider>().selectPersona(UserType.goer);
+        context.read<AuthProvider>().selectPersona(UserType.organiser);
+        context.read<AuthProvider>().selectPersona(UserType.performer);
+        context.read<AuthProvider>().logout();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        final isPersonaSelected = authProvider.selectedUserType != null;
+
+        if (isPersonaSelected) {
+          return _buildExpandedView(context, authProvider);
+        } else {
+          return _buildSplitScreenView(context);
+        }
+      },
+    );
+  }
+
+  Widget _buildSplitScreenView(BuildContext context) {
+    const personas = [UserType.goer, UserType.organiser, UserType.performer];
+
+    return Scaffold(
+      body: Row(
+        children: personas.map((userType) {
+          final info = PersonaConfig.getInfo(userType);
+          return Expanded(
+            child: PersonaSlice(
+              userType: userType,
+              info: info,
+              onTap: () => _onPersonaTap(context, userType),
+              isSelected: false,
+              isExpanded: false,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildExpandedView(BuildContext context, AuthProvider authProvider) {
+    final userType = authProvider.selectedUserType!;
+    final info = PersonaConfig.getInfo(userType);
+
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Gradient background
+          Container(decoration: BoxDecoration(gradient: info.gradient)),
+          // Dark overlay
+          Container(color: AppColors.darkBg.withOpacity(0.6)),
+          // Back button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            left: 16,
+            child: GestureDetector(
+              onTap: () => _onBackPress(context),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: AppColors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          // Auth form with fade-in animation
+          Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FadeTransition(
+                    opacity: _expandAnimation,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Consumer<AuthProvider>(
+                          builder: (context, provider, _) {
+                            return Column(
+                              children: [
+                                Icon(
+                                  info.icon,
+                                  size: 56,
+                                  color: AppColors.accent,
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  info.title,
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  info.description,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  FadeTransition(
+                    opacity: _expandAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _buildAuthForm(context, authProvider, userType),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthForm(
+    BuildContext context,
+    AuthProvider authProvider,
+    UserType userType,
+  ) {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return Column(
+          children: [
+            // Error message
+            if (authProvider.errorMessage != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.15),
+                  border: Border.all(color: AppColors.error, width: 1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        authProvider.errorMessage!,
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        authProvider.clearError();
+                      },
+                      child: const Icon(
+                        Icons.close,
+                        color: AppColors.error,
+                        size: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Email field
+            TextField(
+              controller: emailController,
+              enabled: !authProvider.isLoading,
+              keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Email',
+                hintStyle: const TextStyle(color: AppColors.textTertiary),
+                filled: true,
+                fillColor: AppColors.cardBg.withOpacity(0.8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.divider),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.divider),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Password field
+            TextField(
+              controller: passwordController,
+              enabled: !authProvider.isLoading,
+              obscureText: true,
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Password',
+                hintStyle: const TextStyle(color: AppColors.textTertiary),
+                filled: true,
+                fillColor: AppColors.cardBg.withOpacity(0.8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.divider),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.divider),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Submit button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: authProvider.isLoading
+                    ? null
+                    : () async {
+                        final success = await authProvider.authenticate(
+                          email: emailController.text.trim(),
+                          password: passwordController.text,
+                          isSignup: false,
+                        );
+
+                        if (success && mounted) {
+                          // Route to appropriate dashboard
+                          _navigateToDashboard(context, userType);
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  disabledBackgroundColor: AppColors.divider.withOpacity(0.5),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: authProvider.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.primary,
+                          ),
+                        ),
+                      )
+                    : const Text(
+                        'Continue',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _navigateToDashboard(BuildContext context, UserType userType) {
+    final route = PersonaConfig.getInfo(userType).route;
+    Navigator.of(context).pushReplacementNamed(route);
+  }
+}
