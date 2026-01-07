@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
 import 'package:soundguide_app/providers/auth_provider.dart';
+import 'package:soundguide_app/views/pages/splash_page.dart';
 import 'package:soundguide_app/views/pages/landing_page.dart';
 import 'package:soundguide_app/views/pages/goer_dashboard.dart';
 import 'package:soundguide_app/views/pages/organiser_dashboard.dart';
@@ -58,9 +59,9 @@ class MyApp extends StatelessWidget {
             bodyMedium: TextStyle(color: AppColors.textSecondary, fontSize: 14),
           ),
         ),
-        home: const LandingPage(),
+        home: const SplashPage(),
         routes: {
-          '/': (context) => const LandingPage(),
+          '/landing': (context) => const LandingPage(),
           '/goer-dashboard': (context) => const GoerDashboard(),
           '/organiser-dashboard': (context) => const OrganiserDashboard(),
           '/artist-dashboard': (context) => const ArtistDashboard(),

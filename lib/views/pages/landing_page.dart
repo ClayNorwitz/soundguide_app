@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
 import 'package:soundguide_app/constants/persona_config.dart';
 import 'package:soundguide_app/providers/auth_provider.dart';
-import 'package:soundguide_app/views/widgets/persona_slice.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -44,12 +43,13 @@ class _LandingPageState extends State<LandingPage>
 
   void _onBackPress(BuildContext context) {
     _expandController.reverse();
+    final authProvider = context.read<AuthProvider>();
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
-        context.read<AuthProvider>().selectPersona(UserType.goer);
-        context.read<AuthProvider>().selectPersona(UserType.organiser);
-        context.read<AuthProvider>().selectPersona(UserType.performer);
-        context.read<AuthProvider>().logout();
+        authProvider.selectPersona(UserType.goer);
+        authProvider.selectPersona(UserType.organiser);
+        authProvider.selectPersona(UserType.performer);
+        authProvider.logout();
       }
     });
   }
@@ -73,19 +73,64 @@ class _LandingPageState extends State<LandingPage>
     const personas = [UserType.goer, UserType.organiser, UserType.performer];
 
     return Scaffold(
-      body: Row(
-        children: personas.map((userType) {
-          final info = PersonaConfig.getInfo(userType);
-          return Expanded(
-            child: PersonaSlice(
-              userType: userType,
-              info: info,
-              onTap: () => _onPersonaTap(context, userType),
-              isSelected: false,
-              isExpanded: false,
-            ),
-          );
-        }).toList(),
+      body: Container(
+        color: AppColors.darkBg,
+        height: MediaQuery.of(context).size.height,
+        child: Column(
+          children: List.generate(personas.length, (index) {
+            final userType = personas[index];
+            final info = PersonaConfig.getInfo(userType);
+            final personaAccent = PersonaConfig.getAccentColor(userType);
+
+            return Expanded(
+              child: Column(
+                children: [
+                  // Clickable persona card
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _onPersonaTap(context, userType),
+                      child: Container(
+                        color: AppColors.darkBg,
+                        width: double.infinity,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Icon and title
+                            Icon(info.icon, size: 48, color: personaAccent),
+                            const SizedBox(height: 16),
+                            Text(
+                              info.title,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              info.description,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Divider between personas
+                  if (index < personas.length - 1)
+                    Container(height: 1, color: AppColors.divider),
+                ],
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -100,7 +145,7 @@ class _LandingPageState extends State<LandingPage>
           // Gradient background
           Container(decoration: BoxDecoration(gradient: info.gradient)),
           // Dark overlay
-          Container(color: AppColors.darkBg.withOpacity(0.6)),
+          Container(color: AppColors.darkBg.withValues(alpha: 0.6)),
           // Back button
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
@@ -111,7 +156,7 @@ class _LandingPageState extends State<LandingPage>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.1),
+                  color: AppColors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -136,13 +181,12 @@ class _LandingPageState extends State<LandingPage>
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Consumer<AuthProvider>(
                           builder: (context, provider, _) {
+                            final personaAccent = PersonaConfig.getAccentColor(
+                              userType,
+                            );
                             return Column(
                               children: [
-                                Icon(
-                                  info.icon,
-                                  size: 56,
-                                  color: AppColors.accent,
-                                ),
+                                Icon(info.icon, size: 56, color: personaAccent),
                                 const SizedBox(height: 24),
                                 Text(
                                   info.title,
@@ -192,8 +236,10 @@ class _LandingPageState extends State<LandingPage>
     AuthProvider authProvider,
     UserType userType,
   ) {
-    final emailController = TextEditingController();
-    final passwordController = TextEditingController();
+    final emailController = TextEditingController(text: 'test@soundguide.com');
+    final passwordController = TextEditingController(text: 'password123');
+    final personaAccent = PersonaConfig.getAccentColor(userType);
+    bool isSignup = false;
 
     return StatefulBuilder(
       builder: (context, setState) {
@@ -205,7 +251,7 @@ class _LandingPageState extends State<LandingPage>
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.15),
+                  color: AppColors.error.withValues(alpha: 0.15),
                   border: Border.all(color: AppColors.error, width: 1),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -246,12 +292,14 @@ class _LandingPageState extends State<LandingPage>
               controller: emailController,
               enabled: !authProvider.isLoading,
               keyboardType: TextInputType.emailAddress,
+              cursorColor: personaAccent,
+              cursorWidth: 2.0,
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Email',
                 hintStyle: const TextStyle(color: AppColors.textTertiary),
                 filled: true,
-                fillColor: AppColors.cardBg.withOpacity(0.8),
+                fillColor: AppColors.cardBg.withValues(alpha: 0.8),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: AppColors.divider),
@@ -262,7 +310,7 @@ class _LandingPageState extends State<LandingPage>
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.accent),
+                  borderSide: BorderSide(color: personaAccent),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -277,12 +325,14 @@ class _LandingPageState extends State<LandingPage>
               controller: passwordController,
               enabled: !authProvider.isLoading,
               obscureText: true,
+              cursorColor: personaAccent,
+              cursorWidth: 2.0,
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'Password',
                 hintStyle: const TextStyle(color: AppColors.textTertiary),
                 filled: true,
-                fillColor: AppColors.cardBg.withOpacity(0.8),
+                fillColor: AppColors.cardBg.withValues(alpha: 0.8),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: AppColors.divider),
@@ -293,7 +343,7 @@ class _LandingPageState extends State<LandingPage>
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.accent),
+                  borderSide: BorderSide(color: personaAccent),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -306,59 +356,95 @@ class _LandingPageState extends State<LandingPage>
             // Submit button
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: authProvider.isLoading
-                    ? null
-                    : () async {
-                        final success = await authProvider.authenticate(
-                          email: emailController.text.trim(),
-                          password: passwordController.text,
-                          isSignup: false,
-                        );
+              child: Builder(
+                builder: (context) {
+                  final personaAccent = PersonaConfig.getAccentColor(userType);
+                  return ElevatedButton(
+                    onPressed: authProvider.isLoading
+                        ? null
+                        : () async {
+                            final route = PersonaConfig.getInfo(userType).route;
+                            final navigator = Navigator.of(context);
 
-                        if (success && mounted) {
-                          // Route to appropriate dashboard
-                          _navigateToDashboard(context, userType);
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  disabledBackgroundColor: AppColors.divider.withOpacity(0.5),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: authProvider.isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primary,
-                          ),
-                        ),
-                      )
-                    : const Text(
-                        'Continue',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
+                            final success = await authProvider.authenticate(
+                              email: emailController.text.trim(),
+                              password: passwordController.text,
+                              isSignup: isSignup,
+                            );
+
+                            if (!mounted) return;
+                            if (success) {
+                              navigator.pushReplacementNamed(route);
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: personaAccent,
+                      disabledBackgroundColor: AppColors.divider.withValues(
+                        alpha: 0.5,
                       ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: authProvider.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            isSignup ? 'Create Account' : 'Login',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Sign Up / Login toggle
+            GestureDetector(
+              onTap: !authProvider.isLoading
+                  ? () => setState(() => isSignup = !isSignup)
+                  : null,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: isSignup
+                          ? 'Already have an account? '
+                          : 'Don\'t have an account? ',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                    TextSpan(
+                      text: isSignup ? 'Login' : 'Sign Up',
+                      style: TextStyle(
+                        color: personaAccent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         );
       },
     );
-  }
-
-  void _navigateToDashboard(BuildContext context, UserType userType) {
-    final route = PersonaConfig.getInfo(userType).route;
-    Navigator.of(context).pushReplacementNamed(route);
   }
 }

@@ -115,8 +115,8 @@ class GoerDashboard extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            AppColors.accent.withOpacity(0.6),
-                            AppColors.accent.withOpacity(0.2),
+                            AppColors.accent.withValues(alpha: 0.6),
+                            AppColors.accent.withValues(alpha: 0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(8),
@@ -125,7 +125,7 @@ class GoerDashboard extends StatelessWidget {
                         child: Icon(
                           Icons.image,
                           size: 48,
-                          color: AppColors.accent.withOpacity(0.5),
+                          color: AppColors.accent.withValues(alpha: 0.5),
                         ),
                       ),
                     ),

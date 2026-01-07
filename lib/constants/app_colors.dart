@@ -6,24 +6,29 @@ class AppColors {
   static const Color secondary = Color(0xFFFFFFFF); // White
   static const Color accent = Color(0xFF00D9FF); // Cyan accent
 
-  // Persona gradients - vibrant, immersive, minimalist
+  // Persona gradients - minimal black with dividers
   static const LinearGradient explorerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF667EEA), Color(0xFF764BA2)], // Purple to deep purple
+    colors: [Color(0xFF000000), Color(0xFF000000)], // Pure black
   );
 
   static const LinearGradient hostGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFF093FB), Color(0xFFF5576C)], // Pink to coral
+    colors: [Color(0xFF000000), Color(0xFF000000)], // Pure black
   );
 
   static const LinearGradient performerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF00D2FC), Color(0xFF3677FF)], // Cyan to blue
+    colors: [Color(0xFF000000), Color(0xFF000000)], // Pure black
   );
+
+  // Persona-specific accent colors
+  static const Color explorerAccent = Color(0xFF00A3FF); // Bright navy blue
+  static const Color hostAccent = Color(0xFFD946EF); // Vibrant purple
+  static const Color performerAccent = Color(0xFF00D9A3); // Vibrant teal
 
   // Neutral palette
   static const Color darkBg = Color(0xFF0F0F1E);

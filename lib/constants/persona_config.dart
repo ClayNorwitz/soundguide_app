@@ -36,6 +36,17 @@ class PersonaConfig {
 
   static PersonaInfo getInfo(UserType type) => config[type]!;
   static String getBackendValue(UserType type) => config[type]!.id;
+
+  static Color getAccentColor(UserType type) {
+    switch (type) {
+      case UserType.goer:
+        return AppColors.explorerAccent;
+      case UserType.organiser:
+        return AppColors.hostAccent;
+      case UserType.performer:
+        return AppColors.performerAccent;
+    }
+  }
 }
 
 class PersonaInfo {
