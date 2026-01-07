@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
-import 'package:soundguide_app/constants/persona_config.dart';
 import 'package:soundguide_app/providers/auth_provider.dart';
 import 'package:soundguide_app/views/pages/landing_page.dart';
 import 'package:soundguide_app/views/pages/goer_dashboard.dart';
