@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
 import 'package:soundguide_app/providers/auth_provider.dart';
+import 'package:soundguide_app/providers/explorer_provider.dart';
 import 'package:soundguide_app/views/pages/splash_page.dart';
 import 'package:soundguide_app/views/pages/landing_page.dart';
 import 'package:soundguide_app/views/pages/goer_dashboard.dart';
 import 'package:soundguide_app/views/pages/organiser_dashboard.dart';
 import 'package:soundguide_app/views/pages/artist_dashboard.dart';
+import 'package:soundguide_app/views/pages/event_details_page.dart';
+import 'package:soundguide_app/views/pages/artist_profile_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,7 +21,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ExplorerProvider()),
+      ],
       child: MaterialApp(
         title: 'SoundGuide',
         debugShowCheckedModeBanner: false,
@@ -60,6 +66,20 @@ class MyApp extends StatelessWidget {
           ),
         ),
         home: const SplashPage(),
+        onGenerateRoute: (settings) {
+          if (settings.name == '/event-details') {
+            final eventId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => EventDetailsPage(eventId: eventId),
+            );
+          } else if (settings.name == '/artist-profile') {
+            final artistId = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => ArtistProfilePage(artistId: artistId),
+            );
+          }
+          return null;
+        },
         routes: {
           '/landing': (context) => const LandingPage(),
           '/goer-dashboard': (context) => const GoerDashboard(),
