@@ -238,6 +238,10 @@ class _LandingPageState extends State<LandingPage>
   ) {
     final emailController = TextEditingController(text: 'test@soundguide.com');
     final passwordController = TextEditingController(text: 'password123');
+    final nameController = TextEditingController(text: 'Clay');
+    final confirmPasswordController = TextEditingController(
+      text: 'password123',
+    );
     final personaAccent = PersonaConfig.getAccentColor(userType);
     bool isSignup = false;
 
@@ -285,6 +289,43 @@ class _LandingPageState extends State<LandingPage>
                     ),
                   ],
                 ),
+              ),
+
+            // Name field (signup only)
+            if (isSignup)
+              Column(
+                children: [
+                  TextField(
+                    controller: nameController,
+                    enabled: !authProvider.isLoading,
+                    cursorColor: personaAccent,
+                    cursorWidth: 2.0,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Full Name',
+                      hintStyle: const TextStyle(color: AppColors.textTertiary),
+                      filled: true,
+                      fillColor: AppColors.cardBg.withValues(alpha: 0.8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.divider),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.divider),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: personaAccent),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ),
 
             // Email field
@@ -351,7 +392,47 @@ class _LandingPageState extends State<LandingPage>
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Confirm Password field (signup only)
+            if (isSignup)
+              Column(
+                children: [
+                  TextField(
+                    controller: confirmPasswordController,
+                    enabled: !authProvider.isLoading,
+                    obscureText: true,
+                    cursorColor: personaAccent,
+                    cursorWidth: 2.0,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Confirm Password',
+                      hintStyle: const TextStyle(color: AppColors.textTertiary),
+                      filled: true,
+                      fillColor: AppColors.cardBg.withValues(alpha: 0.8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.divider),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.divider),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: personaAccent),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              )
+            else
+              const SizedBox(height: 24),
 
             // Submit button
             SizedBox(
@@ -363,6 +444,21 @@ class _LandingPageState extends State<LandingPage>
                     onPressed: authProvider.isLoading
                         ? null
                         : () async {
+                            // Validate confirm password on signup
+                            if (isSignup &&
+                                passwordController.text !=
+                                    confirmPasswordController.text) {
+                              authProvider.errorMessage !=
+                                  null; // Trigger error via provider
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Passwords do not match'),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                              return;
+                            }
+
                             final route = PersonaConfig.getInfo(userType).route;
                             final navigator = Navigator.of(context);
 
@@ -370,6 +466,9 @@ class _LandingPageState extends State<LandingPage>
                               email: emailController.text.trim(),
                               password: passwordController.text,
                               isSignup: isSignup,
+                              name: isSignup
+                                  ? nameController.text.trim()
+                                  : null,
                             );
 
                             if (!mounted) return;

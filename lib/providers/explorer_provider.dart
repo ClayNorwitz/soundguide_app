@@ -5,6 +5,7 @@ class ExplorerProvider extends ChangeNotifier {
   final Set<String> _bookmarkedEventIds = {};
   final Set<String> _followedArtistIds = {};
   final Map<String, int> _eventLikes = {}; // eventId -> like count
+  final Set<String> _createdEventIds = {}; // Track events created by organiser
 
   // Mock data
   late List<Event> _events;
@@ -217,5 +218,15 @@ class ExplorerProvider extends ChangeNotifier {
 
   List<Artist> getFollowedArtists() {
     return _artists.where((a) => _followedArtistIds.contains(a.id)).toList();
+  }
+
+  void addEvent(Event event) {
+    _events.add(event);
+    _createdEventIds.add(event.id);
+    notifyListeners();
+  }
+
+  List<Event> getCreatedEvents() {
+    return _events.where((e) => _createdEventIds.contains(e.id)).toList();
   }
 }

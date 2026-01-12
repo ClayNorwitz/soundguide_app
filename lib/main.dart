@@ -10,6 +10,8 @@ import 'package:soundguide_app/views/pages/organiser_dashboard.dart';
 import 'package:soundguide_app/views/pages/artist_dashboard.dart';
 import 'package:soundguide_app/views/pages/event_details_page.dart';
 import 'package:soundguide_app/views/pages/artist_profile_page.dart';
+import 'package:soundguide_app/views/pages/account_settings_page.dart';
+import 'package:soundguide_app/views/pages/add_event_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,6 +31,7 @@ class MyApp extends StatelessWidget {
         title: 'SoundGuide',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+          // ...
           useMaterial3: true,
           brightness: Brightness.dark,
           scaffoldBackgroundColor: AppColors.darkBg,
@@ -54,6 +57,9 @@ class MyApp extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
+          ),
+          textSelectionTheme: const TextSelectionThemeData(
+            cursorColor: AppColors.accent,
           ),
           textTheme: const TextTheme(
             displayLarge: TextStyle(
@@ -85,6 +91,8 @@ class MyApp extends StatelessWidget {
           '/goer-dashboard': (context) => const GoerDashboard(),
           '/organiser-dashboard': (context) => const OrganiserDashboard(),
           '/artist-dashboard': (context) => const ArtistDashboard(),
+          '/account-settings': (context) => const AccountSettingsPage(),
+          '/add-event': (context) => const AddEventPage(),
         },
       ),
     );

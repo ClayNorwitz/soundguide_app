@@ -27,6 +27,7 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     bool isSignup = false,
+    String? name,
   }) async {
     if (_selectedUserType == null) {
       _errorMessage = 'Please select a persona first';
@@ -47,6 +48,10 @@ class AuthProvider extends ChangeNotifier {
         throw 'Email and password are required';
       }
 
+      if (isSignup && (name == null || name.isEmpty)) {
+        throw 'Name is required to create an account';
+      }
+
       if (!email.contains('@')) {
         throw 'Invalid email format';
       }
@@ -61,7 +66,7 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
         userType: _selectedUserType!,
-        displayName: email.split('@').first,
+        displayName: isSignup ? name : email.split('@').first,
         createdAt: DateTime.now(),
       );
 
@@ -110,5 +115,36 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  void updateName(String newName) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(displayName: newName);
+      notifyListeners();
+    }
+  }
+
+  void updateProfileImage(String imageUrl) {
+    if (_currentUser != null) {
+      _currentUser = _currentUser!.copyWith(profileImageUrl: imageUrl);
+      notifyListeners();
+    }
+  }
+
+  bool changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) {
+    if (_currentUser == null) return false;
+
+    // Mock validation: check if current password matches
+    if (_currentUser!.password != currentPassword) {
+      return false;
+    }
+
+    // Update password
+    _currentUser = _currentUser!.copyWith(password: newPassword);
+    notifyListeners();
+    return true;
   }
 }

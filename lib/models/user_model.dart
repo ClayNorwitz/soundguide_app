@@ -6,6 +6,7 @@ class User {
   final String password; // In production, never store plain passwords
   final UserType userType;
   final String? displayName;
+  final String? profileImageUrl;
   final DateTime createdAt;
 
   User({
@@ -14,6 +15,7 @@ class User {
     required this.password,
     required this.userType,
     this.displayName,
+    this.profileImageUrl,
     required this.createdAt,
   });
 
@@ -33,6 +35,7 @@ class User {
     String? password,
     UserType? userType,
     String? displayName,
+    String? profileImageUrl,
     DateTime? createdAt,
   }) {
     return User(
@@ -41,6 +44,7 @@ class User {
       password: password ?? this.password,
       userType: userType ?? this.userType,
       displayName: displayName ?? this.displayName,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -51,6 +55,7 @@ class User {
       'email': email,
       'user_type': PersonaConfig.getBackendValue(userType),
       'display_name': displayName ?? email.split('@').first,
+      'profile_image_url': profileImageUrl,
       'created_at': createdAt.toIso8601String(),
     };
   }

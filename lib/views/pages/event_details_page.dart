@@ -183,7 +183,7 @@ class EventDetailsPage extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
                           child: Text(
-                            'Get Tickets - \$${event.ticketPrice.toStringAsFixed(2)}',
+                            'Get Tickets - R${event.ticketPrice.toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontSize: 16,

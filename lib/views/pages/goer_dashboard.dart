@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
@@ -122,6 +123,18 @@ class _GoerDashboardState extends State<GoerDashboard> {
               Navigator.pop(context);
             },
           ),
+          const Divider(color: AppColors.divider),
+          ListTile(
+            leading: const Icon(Icons.settings, color: AppColors.accent),
+            title: const Text(
+              'Account Settings',
+              style: TextStyle(color: AppColors.textPrimary),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/account-settings');
+            },
+          ),
         ],
       ),
     );
@@ -193,9 +206,20 @@ class _GoerDashboardState extends State<GoerDashboard> {
               color: AppColors.divider,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Center(
-              child: Text(event.imageUrl, style: const TextStyle(fontSize: 48)),
-            ),
+            child: event.artworkPath != null && event.artworkPath!.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.file(
+                      File(event.artworkPath!),
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      event.imageUrl,
+                      style: const TextStyle(fontSize: 48),
+                    ),
+                  ),
           ),
           const SizedBox(height: 12),
 

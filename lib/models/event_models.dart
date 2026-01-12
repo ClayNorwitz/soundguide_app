@@ -64,6 +64,7 @@ class Event {
   final Venue venue;
   final List<LineupArtist> lineup;
   final String imageUrl;
+  final String? artworkPath;
   final double ticketPrice;
   final String ticketUrl;
   int likes;
@@ -79,6 +80,7 @@ class Event {
     required this.imageUrl,
     required this.ticketPrice,
     required this.ticketUrl,
+    this.artworkPath,
     this.likes = 0,
     this.isBookmarked = false,
   });
