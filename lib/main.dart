@@ -12,8 +12,14 @@ import 'package:soundguide_app/views/pages/event_details_page.dart';
 import 'package:soundguide_app/views/pages/artist_profile_page.dart';
 import 'package:soundguide_app/views/pages/account_settings_page.dart';
 import 'package:soundguide_app/views/pages/add_event_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 

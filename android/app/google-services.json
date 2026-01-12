@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "80479214894",
+    "project_id": "sound-guide-app",
+    "storage_bucket": "sound-guide-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:80479214894:android:295307a83d9b9072b32ebf",
+        "android_client_info": {
+          "package_name": "com.example.soundguide_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "80479214894-l206lb9mv687ft7hm3o261bu41mpe0vh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJ40Ly_FpCk1VK69_3TDPgr6UyPOyg124"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "80479214894-l206lb9mv687ft7hm3o261bu41mpe0vh.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "80479214894-uucbm2iou0l8ticpg5lbfc92bg988mvj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.soundguideApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
