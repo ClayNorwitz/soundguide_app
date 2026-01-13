@@ -69,6 +69,7 @@ class Event {
   final String ticketUrl;
   int likes;
   bool isBookmarked;
+  bool isApproved;
 
   Event({
     required this.id,
@@ -83,5 +84,6 @@ class Event {
     this.artworkPath,
     this.likes = 0,
     this.isBookmarked = false,
+    this.isApproved = false,
   });
 }

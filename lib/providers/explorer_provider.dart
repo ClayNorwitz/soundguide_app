@@ -107,6 +107,7 @@ class ExplorerProvider extends ChangeNotifier {
         imageUrl: '🎉',
         ticketPrice: 35.0,
         ticketUrl: 'https://tickets.example.com/neon-nights',
+        isApproved: true,
       ),
       Event(
         id: 'event-2',
@@ -140,7 +141,9 @@ class ExplorerProvider extends ChangeNotifier {
   }
 
   // Getters
-  List<Event> get events => _events;
+  List<Event> get events => _events.where((event) => event.isApproved).toList();
+  List<Event> get unapprovedEvents =>
+      _events.where((event) => !event.isApproved).toList();
   List<Artist> get artists => _artists;
   Set<String> get bookmarkedEventIds => _bookmarkedEventIds;
   Set<String> get followedArtistIds => _followedArtistIds;
@@ -228,5 +231,11 @@ class ExplorerProvider extends ChangeNotifier {
 
   List<Event> getCreatedEvents() {
     return _events.where((e) => _createdEventIds.contains(e.id)).toList();
+  }
+
+  void approveEvent(String eventId) {
+    final event = _events.firstWhere((e) => e.id == eventId);
+    event.isApproved = true;
+    notifyListeners();
   }
 }

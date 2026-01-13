@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
 import 'package:soundguide_app/providers/auth_provider.dart';
 import 'package:soundguide_app/providers/explorer_provider.dart';
+import 'package:soundguide_app/views/pages/admin_login_page.dart';
 import 'package:soundguide_app/views/pages/splash_page.dart';
 import 'package:soundguide_app/views/pages/landing_page.dart';
 import 'package:soundguide_app/views/pages/goer_dashboard.dart';
@@ -12,6 +13,7 @@ import 'package:soundguide_app/views/pages/event_details_page.dart';
 import 'package:soundguide_app/views/pages/artist_profile_page.dart';
 import 'package:soundguide_app/views/pages/account_settings_page.dart';
 import 'package:soundguide_app/views/pages/add_event_page.dart';
+import 'package:soundguide_app/views/pages/admin_dashboard.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -100,6 +102,8 @@ class MyApp extends StatelessWidget {
           '/artist-dashboard': (context) => const ArtistDashboard(),
           '/account-settings': (context) => const AccountSettingsPage(),
           '/add-event': (context) => const AddEventPage(),
+          '/admin-dashboard': (context) => const AdminDashboard(),
+          '/admin-login': (context) => const AdminLoginPage(),
         },
       ),
     );
@@ -114,6 +118,9 @@ class AuthWrapper extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
 
     if (authProvider.isAuthenticated) {
+      if (authProvider.isAdmin) {
+        return const AdminDashboard();
+      }
       return const GoerDashboard();
     } else {
       return const SplashPage();

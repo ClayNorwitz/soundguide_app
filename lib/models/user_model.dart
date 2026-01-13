@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:soundguide_app/constants/persona_config.dart';
+import 'package:soundguide_app/models/user_role.dart';
 
 class User {
   final String id;
@@ -9,6 +10,7 @@ class User {
   final String? displayName;
   final String? profileImageUrl;
   final DateTime createdAt;
+  final UserRole role;
 
   User({
     required this.id,
@@ -18,6 +20,7 @@ class User {
     this.displayName,
     this.profileImageUrl,
     required this.createdAt,
+    this.role = UserRole.user,
   });
 
   factory User.fromFirebaseUser(
@@ -51,6 +54,7 @@ class User {
     String? displayName,
     String? profileImageUrl,
     DateTime? createdAt,
+    UserRole? role,
   }) {
     return User(
       id: id ?? this.id,
@@ -60,6 +64,7 @@ class User {
       displayName: displayName ?? this.displayName,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       createdAt: createdAt ?? this.createdAt,
+      role: role ?? this.role,
     );
   }
 

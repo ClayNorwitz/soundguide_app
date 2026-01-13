@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:soundguide_app/constants/persona_config.dart';
 import 'package:soundguide_app/models/user_model.dart';
+import 'package:soundguide_app/models/user_role.dart';
 
 class AuthProvider extends ChangeNotifier {
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
@@ -19,6 +20,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _currentUser != null;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isAdmin => _currentUser?.role == UserRole.admin;
 
   /// Step 1: User selects a persona
   void selectPersona(UserType userType) {
@@ -34,6 +36,20 @@ class AuthProvider extends ChangeNotifier {
     bool isSignup = false,
     String? name,
   }) async {
+    if (email == 'admin@admin.com' && password == 'password') {
+      _currentUser = User(
+        id: 'admin',
+        email: email,
+        password: password,
+        userType: UserType.goer,
+        role: UserRole.admin,
+        displayName: 'Admin',
+        createdAt: DateTime.now(),
+      );
+      notifyListeners();
+      return true;
+    }
+
     if (_selectedUserType == null) {
       _errorMessage = 'Please select a persona first';
       notifyListeners();

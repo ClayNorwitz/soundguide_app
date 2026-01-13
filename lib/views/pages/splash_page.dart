@@ -12,6 +12,7 @@ class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -39,9 +40,40 @@ class _SplashPageState extends State<SplashPage>
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
+  void _openDrawer() {
+    _scaffoldKey.currentState!.openDrawer();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: AppColors.darkBg,
+              ),
+              child: Text(
+                'Admin Panel',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.login),
+              title: const Text('Admin Login'),
+              onTap: () {
+                Navigator.of(context).pushNamed('/admin-login');
+              },
+            ),
+          ],
+        ),
+      ),
       body: Container(
         decoration: const BoxDecoration(color: AppColors.darkBg),
         child: Center(
@@ -51,12 +83,15 @@ class _SplashPageState extends State<SplashPage>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo
-                SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: Image.asset(
-                    'assets/images/sg-logo.png',
-                    fit: BoxFit.contain,
+                InkWell(
+                  onTap: _openDrawer,
+                  child: SizedBox(
+                    width: 120,
+                    height: 120,
+                    child: Image.asset(
+                      'assets/images/sg-logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
