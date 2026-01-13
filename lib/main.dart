@@ -77,7 +77,7 @@ class MyApp extends StatelessWidget {
             bodyMedium: TextStyle(color: AppColors.textSecondary, fontSize: 14),
           ),
         ),
-        home: const SplashPage(),
+        home: const AuthWrapper(),
         onGenerateRoute: (settings) {
           if (settings.name == '/event-details') {
             final eventId = settings.arguments as String;
@@ -93,6 +93,7 @@ class MyApp extends StatelessWidget {
           return null;
         },
         routes: {
+          '/login': (context) => const LandingPage(),
           '/landing': (context) => const LandingPage(),
           '/goer-dashboard': (context) => const GoerDashboard(),
           '/organiser-dashboard': (context) => const OrganiserDashboard(),
@@ -102,5 +103,20 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
+    if (authProvider.isAuthenticated) {
+      return const GoerDashboard();
+    } else {
+      return const SplashPage();
+    }
   }
 }

@@ -1,8 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:soundguide_app/constants/persona_config.dart';
 import 'package:soundguide_app/models/user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
   UserType? _selectedUserType;
   User? _currentUser;
   bool _isLoading = false;
@@ -22,7 +27,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Step 3: Mock login/signup
+  /// Step 2: Email/Password Authentication
   Future<bool> authenticate({
     required String email,
     required String password,
@@ -40,38 +45,102 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Simulate network delay
-      await Future.delayed(const Duration(milliseconds: 1500));
+      firebase_auth.UserCredential userCredential;
 
-      // Validate inputs
-      if (email.isEmpty || password.isEmpty) {
-        throw 'Email and password are required';
+      if (isSignup) {
+        if (name == null || name.isEmpty) {
+          throw 'Name is required to create an account';
+        }
+        userCredential = await _auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        await userCredential.user?.updateDisplayName(name);
+      } else {
+        userCredential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
       }
 
-      if (isSignup && (name == null || name.isEmpty)) {
-        throw 'Name is required to create an account';
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null) {
+        throw 'Authentication failed, please try again.';
       }
 
-      if (!email.contains('@')) {
-        throw 'Invalid email format';
-      }
-
-      if (password.length < 6) {
-        throw 'Password must be at least 6 characters';
-      }
-
-      // Mock user creation
       _currentUser = User(
-        id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        password: password,
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
         userType: _selectedUserType!,
-        displayName: isSignup ? name : email.split('@').first,
-        createdAt: DateTime.now(),
+        displayName: firebaseUser.displayName ?? email.split('@').first,
+        createdAt: firebaseUser.metadata.creationTime ?? DateTime.now(),
+        profileImageUrl: firebaseUser.photoURL,
+        password: '',
       );
 
-      // Step 4: Simulate backend request with userType + credentials
-      await _simulateBackendAuth();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Step 3: Google Sign-In Authentication
+  Future<bool> signInWithGoogle() async {
+    if (_selectedUserType == null) {
+      _errorMessage = 'Please select a persona first';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Trigger the Google Authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        _isLoading = false;
+        notifyListeners();
+        return false; // User cancelled the selection
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final credential = firebase_auth.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the credential
+      final userCredential = await _auth.signInWithCredential(credential);
+      final firebaseUser = userCredential.user;
+
+      if (firebaseUser == null) throw 'Google sign-in failed.';
+
+      // Map Firebase user to your custom User model
+      _currentUser = User(
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
+        userType: _selectedUserType!,
+        displayName: firebaseUser.displayName ?? "User",
+        createdAt: firebaseUser.metadata.creationTime ?? DateTime.now(),
+        profileImageUrl: firebaseUser.photoURL,
+        password: '',
+      );
 
       _isLoading = false;
       notifyListeners();
@@ -84,28 +153,10 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Step 4: Simulate sending user data to backend
-  Future<void> _simulateBackendAuth() async {
-    if (_currentUser == null) return;
-
-    // In production, this would be an actual HTTP request
-    final backendPayload = {
-      'action': 'authenticate',
-      'credentials': {
-        'email': _currentUser!.email,
-        'password': _currentUser!.password,
-      },
-      'user_metadata': _currentUser!.toBackendJson(),
-    };
-
-    // Simulate backend processing
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // In a real app, you'd handle the response and errors here
-    debugPrint('Backend Auth Payload: $backendPayload');
-  }
-
-  void logout() {
+  /// Logout - Signs out from both Firebase and Google
+  void logout() async {
+    await _auth.signOut();
+    await _googleSignIn.signOut();
     _currentUser = null;
     _selectedUserType = null;
     _errorMessage = null;
@@ -135,16 +186,8 @@ class AuthProvider extends ChangeNotifier {
     required String currentPassword,
     required String newPassword,
   }) {
+    // Note: Re-authentication is required for Firebase password changes
     if (_currentUser == null) return false;
-
-    // Mock validation: check if current password matches
-    if (_currentUser!.password != currentPassword) {
-      return false;
-    }
-
-    // Update password
-    _currentUser = _currentUser!.copyWith(password: newPassword);
-    notifyListeners();
-    return true;
+    return false;
   }
 }

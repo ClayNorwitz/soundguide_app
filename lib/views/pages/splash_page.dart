@@ -36,7 +36,7 @@ class _SplashPageState extends State<SplashPage>
   }
 
   void _onGetStarted(BuildContext context) {
-    Navigator.of(context).pushReplacementNamed('/landing');
+    Navigator.of(context).pushReplacementNamed('/login');
   }
 
   @override

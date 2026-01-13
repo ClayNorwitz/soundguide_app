@@ -386,9 +386,8 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
           profileImagePath = pickedFile.path;
         });
 
-        context.read<AuthProvider>().updateProfileImage(pickedFile.path);
-
         if (mounted) {
+          context.read<AuthProvider>().updateProfileImage(pickedFile.path);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Profile picture updated'),
@@ -409,7 +408,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     }
   }
 
-  void _handlePasswordChange() {
+  Future<void> _handlePasswordChange() async {
     if (currentPasswordController.text.isEmpty ||
         newPasswordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {

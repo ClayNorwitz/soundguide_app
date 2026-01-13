@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "80479214894-me0teofn8pb2n9m3n96c1olsup1jsaci.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.soundguide_app",
+            "certificate_hash": "6b608e2c1eb7b644a22f6f54a7b673a6476226a7"
+          }
+        },
+        {
           "client_id": "80479214894-l206lb9mv687ft7hm3o261bu41mpe0vh.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:soundguide_app/constants/persona_config.dart';
 
 class User {
@@ -18,6 +19,19 @@ class User {
     this.profileImageUrl,
     required this.createdAt,
   });
+
+  factory User.fromFirebaseUser(
+      firebase_auth.User firebaseUser, UserType userType) {
+    return User(
+      id: firebaseUser.uid,
+      email: firebaseUser.email!,
+      userType: userType,
+      displayName: firebaseUser.displayName,
+      profileImageUrl: firebaseUser.photoURL,
+      createdAt: firebaseUser.metadata.creationTime ?? DateTime.now(),
+      password: '',
+    );
+  }
 
   factory User.empty() {
     return User(

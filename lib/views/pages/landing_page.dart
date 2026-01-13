@@ -236,12 +236,10 @@ class _LandingPageState extends State<LandingPage>
     AuthProvider authProvider,
     UserType userType,
   ) {
-    final emailController = TextEditingController(text: 'test@soundguide.com');
-    final passwordController = TextEditingController(text: 'password123');
+    final emailController = TextEditingController(text: 'test@soundguide.co');
+    final passwordController = TextEditingController(text: '123456');
     final nameController = TextEditingController(text: 'Clay');
-    final confirmPasswordController = TextEditingController(
-      text: 'password123',
-    );
+    final confirmPasswordController = TextEditingController(text: '123456');
     final personaAccent = PersonaConfig.getAccentColor(userType);
     bool isSignup = false;
 
@@ -510,6 +508,64 @@ class _LandingPageState extends State<LandingPage>
                 },
               ),
             ),
+
+            if (isSignup) ...[
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: AppColors.divider)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      "OR",
+                      style: TextStyle(
+                        color: AppColors.textTertiary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Divider(color: AppColors.divider)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: authProvider.isLoading
+                      ? null
+                      : () async {
+                          final route = PersonaConfig.getInfo(userType).route;
+                          final navigator = Navigator.of(context);
+                          final success = await authProvider.signInWithGoogle();
+                          if (success && mounted) {
+                            navigator.pushReplacementNamed(route);
+                          }
+                        },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: AppColors.divider),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: const Icon(
+                    Icons.g_mobiledata,
+                    color: AppColors.white,
+                    size: 30,
+                  ),
+                  label: const Text(
+                    'Continue with Google',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            // ------------------------------
             const SizedBox(height: 16),
 
             // Sign Up / Login toggle
@@ -540,6 +596,13 @@ class _LandingPageState extends State<LandingPage>
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/admin-dashboard');
+              },
+              child: const Text('Admin Dashboard'),
             ),
           ],
         );
