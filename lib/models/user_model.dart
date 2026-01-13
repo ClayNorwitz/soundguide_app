@@ -5,7 +5,8 @@ import 'package:soundguide_app/models/user_role.dart';
 class User {
   final String id;
   final String email;
-  final String password; // In production, never store plain passwords
+  final String
+  password; // Note: Only used during transport, never stored in Firestore
   final UserType userType;
   final String? displayName;
   final String? profileImageUrl;
@@ -23,8 +24,49 @@ class User {
     this.role = UserRole.user,
   });
 
+  // --- FIRESTORE SERIALIZATION ---
+
+  /// Converts the User object into a Map to stay organized in Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'email': email,
+      // Uses your PersonaConfig to convert Enum to String (e.g., 'host' or 'goer')
+      'userType': PersonaConfig.getBackendValue(userType),
+      'displayName': displayName ?? email.split('@').first,
+      'profileImageUrl': profileImageUrl,
+      'createdAt': createdAt.toIso8601String(),
+      // Converts UserRole enum to String (e.g., 'user' or 'admin')
+      'role': role.toString().split('.').last,
+    };
+  }
+
+  /// Creates a User object from a Firestore document
+  factory User.fromMap(Map<String, dynamic> map) {
+    return User(
+      id: map['id'] ?? '',
+      email: map['email'] ?? '',
+      password: '', // Always empty when coming from DB for security
+      userType: PersonaConfig.fromBackendValue(map['userType'] ?? 'goer'),
+      displayName: map['displayName'],
+      profileImageUrl: map['profileImageUrl'],
+      createdAt: DateTime.parse(
+        map['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
+      role: UserRole.values.firstWhere(
+        (r) => r.toString().split('.').last == (map['role'] ?? 'user'),
+        orElse: () => UserRole.user,
+      ),
+    );
+  }
+
+  // --- HELPER CONSTRUCTORS ---
+
+  /// Initial conversion when a user first signs up via Firebase Auth
   factory User.fromFirebaseUser(
-      firebase_auth.User firebaseUser, UserType userType) {
+    firebase_auth.User firebaseUser,
+    UserType userType,
+  ) {
     return User(
       id: firebaseUser.uid,
       email: firebaseUser.email!,
@@ -36,6 +78,7 @@ class User {
     );
   }
 
+  /// Empty state for initialization in Providers
   factory User.empty() {
     return User(
       id: '',
@@ -45,6 +88,8 @@ class User {
       createdAt: DateTime.now(),
     );
   }
+
+  // --- UTILS ---
 
   User copyWith({
     String? id,
@@ -68,14 +113,6 @@ class User {
     );
   }
 
-  // Mock backend serialization
-  Map<String, dynamic> toBackendJson() {
-    return {
-      'email': email,
-      'user_type': PersonaConfig.getBackendValue(userType),
-      'display_name': displayName ?? email.split('@').first,
-      'profile_image_url': profileImageUrl,
-      'created_at': createdAt.toIso8601String(),
-    };
-  }
+  /// Backward compatibility for your existing mock backend logic
+  Map<String, dynamic> toBackendJson() => toMap();
 }

@@ -37,6 +37,13 @@ class PersonaConfig {
   static PersonaInfo getInfo(UserType type) => config[type]!;
   static String getBackendValue(UserType type) => config[type]!.id;
 
+  static UserType fromBackendValue(String value) {
+    return UserType.values.firstWhere(
+      (type) => config[type]!.id == value,
+      orElse: () => UserType.goer, // Default fallback
+    );
+  }
+
   static Color getAccentColor(UserType type) {
     switch (type) {
       case UserType.goer:

@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
 import 'package:soundguide_app/models/event_models.dart';
 import 'package:soundguide_app/providers/auth_provider.dart';
 import 'package:soundguide_app/providers/explorer_provider.dart';
+import 'package:soundguide_app/views/pages/account_settings_page.dart';
 
 class GoerDashboard extends StatefulWidget {
   const GoerDashboard({super.key});
@@ -123,7 +123,9 @@ class _GoerDashboardState extends State<GoerDashboard> {
               Navigator.pop(context);
             },
           ),
-          const Divider(color: AppColors.divider),
+          const Divider(color: AppColors.divider, height: 32),
+
+          // NEW ACCOUNT SETTINGS TAB
           ListTile(
             leading: const Icon(Icons.settings, color: AppColors.accent),
             title: const Text(
@@ -131,8 +133,13 @@ class _GoerDashboardState extends State<GoerDashboard> {
               style: TextStyle(color: AppColors.textPrimary),
             ),
             onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/account-settings');
+              Navigator.pop(context); // Close drawer
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AccountSettingsPage(),
+                ),
+              );
             },
           ),
         ],
@@ -153,9 +160,39 @@ class _GoerDashboardState extends State<GoerDashboard> {
     }
   }
 
+  // --- TAB 1: EVENTS (Using StreamBuilder) ---
   Widget _buildEventsTab() {
-    return Consumer<ExplorerProvider>(
-      builder: (context, explorerProvider, _) {
+    final provider = Provider.of<ExplorerProvider>(context, listen: false);
+
+    return StreamBuilder<List<Event>>(
+      stream: provider.approvedEventsStream, // LISTENING TO FIREBASE
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.accent),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }
+
+        final events = snapshot.data ?? [];
+
+        if (events.isEmpty) {
+          return const Center(
+            child: Text(
+              'No upcoming events found.',
+              style: TextStyle(color: Colors.white),
+            ),
+          );
+        }
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -170,14 +207,16 @@ class _GoerDashboardState extends State<GoerDashboard> {
                 ),
               ),
               const SizedBox(height: 16),
-              ...explorerProvider.events.map((event) {
+              ...events.map((event) {
                 return GestureDetector(
                   onTap: () {
                     Navigator.of(
                       context,
                     ).pushNamed('/event-details', arguments: event.id);
                   },
-                  child: _buildEventCard(event, explorerProvider),
+                  child: _buildEventCard(
+                    event,
+                  ), // No longer passing provider, we use context read inside
                 );
               }),
             ],
@@ -187,132 +226,7 @@ class _GoerDashboardState extends State<GoerDashboard> {
     );
   }
 
-  Widget _buildEventCard(Event event, ExplorerProvider explorerProvider) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Event image
-          Container(
-            width: double.infinity,
-            height: 120,
-            decoration: BoxDecoration(
-              color: AppColors.divider,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: event.artworkPath != null && event.artworkPath!.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.file(
-                      File(event.artworkPath!),
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                : Center(
-                    child: Text(
-                      event.imageUrl,
-                      style: const TextStyle(fontSize: 48),
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 12),
-
-          // Title
-          Text(
-            event.title,
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-
-          // Date
-          Text(
-            '${event.dateTime.day}/${event.dateTime.month}/${event.dateTime.year}',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 6),
-
-          // Venue
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: AppColors.accent, size: 14),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  event.venue.name,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    explorerProvider.toggleLikeEvent(event.id);
-                  },
-                  icon: Icon(
-                    explorerProvider.isEventLiked(event.id)
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    size: 16,
-                  ),
-                  label: Text('${event.likes}'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: explorerProvider.isEventLiked(event.id)
-                        ? AppColors.accent
-                        : AppColors.divider,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    explorerProvider.toggleBookmarkEvent(event.id);
-                  },
-                  icon: Icon(
-                    event.isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                    size: 16,
-                  ),
-                  label: const Text('Save'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: event.isBookmarked
-                        ? AppColors.accent
-                        : AppColors.divider,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
+  // --- TAB 2: ARTISTS ---
   Widget _buildArtistsTab() {
     return Consumer<ExplorerProvider>(
       builder: (context, explorerProvider, _) {
@@ -373,13 +287,6 @@ class _GoerDashboardState extends State<GoerDashboard> {
                                   fontSize: 12,
                                 ),
                               ),
-                              Text(
-                                '${artist.followers} followers',
-                                style: const TextStyle(
-                                  color: AppColors.textTertiary,
-                                  fontSize: 11,
-                                ),
-                              ),
                             ],
                           ),
                         ),
@@ -414,18 +321,26 @@ class _GoerDashboardState extends State<GoerDashboard> {
     );
   }
 
+  // --- TAB 3: PERSONAL DASHBOARD ---
   Widget _buildPersonalDashboard() {
-    return Consumer<ExplorerProvider>(
-      builder: (context, explorerProvider, _) {
-        final bookmarkedEvents = explorerProvider.getBookmarkedEvents();
-        final followedArtists = explorerProvider.getFollowedArtists();
+    final provider = Provider.of<ExplorerProvider>(context);
+    final followedArtists = provider.getFollowedArtists();
+
+    return StreamBuilder<List<Event>>(
+      stream: provider.approvedEventsStream,
+      builder: (context, snapshot) {
+        // We get ALL events, then filter for bookmarks locally
+        final allEvents = snapshot.data ?? [];
+        final bookmarkedEvents = allEvents
+            .where((e) => provider.isEventBookmarked(e.id))
+            .toList();
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome section
+              // Welcome Header
               Consumer<AuthProvider>(
                 builder: (context, authProvider, _) {
                   return Column(
@@ -453,7 +368,7 @@ class _GoerDashboardState extends State<GoerDashboard> {
                 },
               ),
 
-              // Bookmarked events section
+              // Bookmarked Events
               Text(
                 'Saved Events (${bookmarkedEvents.length})',
                 style: const TextStyle(
@@ -492,9 +407,26 @@ class _GoerDashboardState extends State<GoerDashboard> {
                       ),
                       child: Row(
                         children: [
-                          Text(
-                            event.imageUrl,
-                            style: const TextStyle(fontSize: 24),
+                          // Small Thumbnail
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              color: AppColors.divider,
+                            ),
+                            child: (event.imageUrl?.isNotEmpty ?? false)
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: Image.network(
+                                      event.imageUrl!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.music_note,
+                                    color: Colors.white,
+                                  ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -526,7 +458,7 @@ class _GoerDashboardState extends State<GoerDashboard> {
 
               const SizedBox(height: 24),
 
-              // Followed artists section
+              // Followed Artists
               Text(
                 'Following (${followedArtists.length})',
                 style: const TextStyle(
@@ -544,7 +476,7 @@ class _GoerDashboardState extends State<GoerDashboard> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'No followed artists yet. Browse and follow your favorites!',
+                    'No followed artists yet.',
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                 )
@@ -599,6 +531,128 @@ class _GoerDashboardState extends State<GoerDashboard> {
           ),
         );
       },
+    );
+  }
+
+  // --- REUSABLE EVENT CARD ---
+  Widget _buildEventCard(Event event) {
+    // We access the provider inside here to get like/bookmark status
+    final provider = Provider.of<ExplorerProvider>(context);
+    final isLiked = provider.isEventLiked(event.id);
+    final isBookmarked = provider.isEventBookmarked(event.id);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Event Image (Network aware)
+          Container(
+            width: double.infinity,
+            height: 140,
+            decoration: BoxDecoration(
+              color: AppColors.divider,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: (event.imageUrl?.isNotEmpty ?? false)
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.network(
+                      event.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => const Center(
+                        child: Icon(Icons.broken_image, color: Colors.white),
+                      ),
+                    ),
+                  )
+                : const Center(
+                    child: Icon(
+                      Icons.image,
+                      size: 48,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            event.title,
+            style: const TextStyle(
+              color: AppColors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${event.dateTime.day}/${event.dateTime.month}/${event.dateTime.year}',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: AppColors.accent, size: 14),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  event.venue.name,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => provider.toggleLikeEvent(event.id),
+                  icon: Icon(
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    size: 16,
+                  ),
+                  label: Text('${event.likes}'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isLiked
+                        ? AppColors.accent
+                        : AppColors.divider,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => provider.toggleBookmarkEvent(event.id),
+                  icon: Icon(
+                    isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                    size: 16,
+                  ),
+                  label: const Text('Save'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isBookmarked
+                        ? AppColors.accent
+                        : AppColors.divider,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

@@ -41,6 +41,8 @@ dependencies:
   google_sign_in: ^5.4.0
   sign_in_with_apple: ^4.3.0
   shared_preferences: ^2.2.3
+  cloud_firestore: ^6.1.1
+  firebase_storage: ^13.0.5
 
 dev_dependencies:
   flutter_test:

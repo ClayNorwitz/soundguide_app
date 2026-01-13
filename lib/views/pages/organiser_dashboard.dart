@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
+import 'package:soundguide_app/models/event_models.dart';
 import 'package:soundguide_app/providers/auth_provider.dart';
 import 'package:soundguide_app/providers/explorer_provider.dart';
 import 'package:soundguide_app/views/pages/add_event_page.dart';
@@ -16,6 +16,9 @@ class OrganiserDashboard extends StatefulWidget {
 class _OrganiserDashboardState extends State<OrganiserDashboard> {
   @override
   Widget build(BuildContext context) {
+    // Access provider without listening, for the logout action
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     return Scaffold(
       backgroundColor: AppColors.darkBg,
       appBar: AppBar(
@@ -34,7 +37,7 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
             padding: const EdgeInsets.all(16.0),
             child: GestureDetector(
               onTap: () {
-                context.read<AuthProvider>().logout();
+                authProvider.logout();
                 Navigator.of(context).pushReplacementNamed('/');
               },
               child: const Icon(Icons.logout, color: AppColors.accent),
@@ -76,10 +79,10 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
             ),
             const SizedBox(height: 32),
 
-            // Analytics section
-            Text(
+            // Analytics section (Static for now)
+            const Text(
               'Quick Stats',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -130,9 +133,9 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
             const SizedBox(height: 32),
 
             // Active events
-            Text(
-              'Active Events',
-              style: const TextStyle(
+            const Text(
+              'Your Events',
+              style: TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -140,9 +143,27 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
             ),
             const SizedBox(height: 16),
 
-            Consumer<ExplorerProvider>(
-              builder: (context, explorerProvider, _) {
-                final createdEvents = explorerProvider.getCreatedEvents();
+            // --- CHANGED TO STREAMBUILDER ---
+            StreamBuilder<List<Event>>(
+              stream: context.read<ExplorerProvider>().myEventsStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  );
+                }
+
+                final createdEvents = snapshot.data ?? [];
+
                 if (createdEvents.isEmpty) {
                   return Center(
                     child: Padding(
@@ -175,6 +196,7 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
                     ),
                   );
                 }
+
                 return Column(
                   children: createdEvents.map((event) {
                     return Container(
@@ -188,16 +210,24 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (event.artworkPath != null && event.artworkPath!.isNotEmpty)
+                          // --- UPDATED IMAGE LOGIC ---
+                          if (event.imageUrl?.isNotEmpty ?? false)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.file(
-                                  File(event.artworkPath!),
+                                child: Image.network(
+                                  event.imageUrl!,
                                   height: 120,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
+                                  errorBuilder: (ctx, err, stack) =>
+                                      const Center(
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                 ),
                               ),
                             ),
@@ -229,19 +259,24 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
                                   ],
                                 ),
                               ),
+                              // --- UPDATED STATUS BADGE ---
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(alpha: 0.2),
+                                  color: event.isApproved
+                                      ? AppColors.success.withOpacity(0.2)
+                                      : Colors.orange.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: const Text(
-                                  'Active',
+                                child: Text(
+                                  event.isApproved ? 'Approved' : 'Pending',
                                   style: TextStyle(
-                                    color: AppColors.success,
+                                    color: event.isApproved
+                                        ? AppColors.success
+                                        : Colors.orange,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -264,8 +299,12 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
                                 child: OutlinedButton(
                                   onPressed: () {},
                                   style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: AppColors.accent),
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    side: const BorderSide(
+                                      color: AppColors.accent,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(6),
                                     ),
@@ -286,7 +325,9 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
                                   onPressed: () {},
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.accent,
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(6),
                                     ),
@@ -318,12 +359,11 @@ class _OrganiserDashboardState extends State<OrganiserDashboard> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.accent,
         onPressed: () async {
-          final result = await Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const AddEventPage()),
-          );
-          if (result == true && mounted) {
-            setState(() {});
-          }
+          // AddEventPage doesn't need to return a result anymore because
+          // the StreamBuilder updates automatically when Firebase changes!
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (context) => const AddEventPage()));
         },
         child: const Icon(Icons.add, color: AppColors.primary),
       ),

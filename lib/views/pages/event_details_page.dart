@@ -11,20 +11,45 @@ class EventDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ExplorerProvider>(
-      builder: (context, explorerProvider, _) {
-        final event = explorerProvider.getEventById(eventId);
+    // We listen to the Provider only for actions (likes/bookmarks),
+    // but we use a StreamBuilder for the Event data itself.
+    final explorerProvider = Provider.of<ExplorerProvider>(context);
 
-        if (event == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Event Not Found')),
-            body: const Center(child: Text('Event not found')),
-          );
-        }
+    return Scaffold(
+      backgroundColor: AppColors.darkBg,
+      // AppBar needs to be inside StreamBuilder or transparent if we want the image to go behind it.
+      // For simplicity, we keep the standard Scaffold structure.
+      appBar: AppBar(
+        title: const Text('Event Details'),
+        backgroundColor: AppColors.cardBg,
+        elevation: 0,
+      ),
+      body: StreamBuilder<Event>(
+        stream: explorerProvider.getEventStream(eventId),
+        builder: (context, snapshot) {
+          // 1. Loading State
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.accent),
+            );
+          }
 
-        return Scaffold(
-          appBar: AppBar(title: const Text('Event Details'), elevation: 0),
-          body: SingleChildScrollView(
+          // 2. Error or Not Found
+          if (snapshot.hasError || !snapshot.hasData) {
+            return const Center(
+              child: Text(
+                'Event not found or deleted',
+                style: TextStyle(color: Colors.white),
+              ),
+            );
+          }
+
+          // 3. Data Loaded
+          final event = snapshot.data!;
+          final isLiked = explorerProvider.isEventLiked(event.id);
+          final isBookmarked = explorerProvider.isEventBookmarked(event.id);
+
+          return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -33,12 +58,25 @@ class EventDetailsPage extends StatelessWidget {
                   width: double.infinity,
                   height: 250,
                   color: AppColors.cardBg,
-                  child: Center(
-                    child: Text(
-                      event.imageUrl,
-                      style: const TextStyle(fontSize: 80),
-                    ),
-                  ),
+                  child: (event.imageUrl?.isNotEmpty ?? false)
+                      ? Image.network(
+                          event.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.white,
+                                ),
+                              ),
+                        )
+                      : const Center(
+                          child: Icon(
+                            Icons.image,
+                            size: 80,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                 ),
 
                 Padding(
@@ -73,6 +111,20 @@ class EventDetailsPage extends StatelessWidget {
                               fontSize: 16,
                             ),
                           ),
+                          const SizedBox(width: 16),
+                          const Icon(
+                            Icons.access_time,
+                            color: AppColors.accent,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${event.dateTime.hour}:${event.dateTime.minute.toString().padLeft(2, '0')}',
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -82,9 +134,9 @@ class EventDetailsPage extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       // Description
-                      Text(
+                      const Text(
                         'About Event',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -101,42 +153,41 @@ class EventDetailsPage extends StatelessWidget {
                       const SizedBox(height: 24),
 
                       // Lineup
-                      Text(
-                        'Lineup',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
+                      if (event.lineup.isNotEmpty) ...[
+                        const Text(
+                          'Lineup',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      ..._buildLineupList(
-                        context,
-                        event.lineup,
-                        explorerProvider,
-                      ),
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 12),
+                        ..._buildLineupList(context, event.lineup),
+                        const SizedBox(height: 24),
+                      ],
 
-                      // Actions row
+                      // Actions row (Likes & Bookmarks)
                       Row(
                         children: [
                           // Like button
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                explorerProvider.toggleLikeEvent(eventId);
-                              },
+                              onPressed: () =>
+                                  explorerProvider.toggleLikeEvent(event.id),
                               icon: Icon(
-                                explorerProvider.isEventLiked(eventId)
+                                isLiked
                                     ? Icons.favorite
                                     : Icons.favorite_border,
                               ),
                               label: Text('${event.likes} Likes'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    explorerProvider.isEventLiked(eventId)
+                                backgroundColor: isLiked
                                     ? AppColors.accent
                                     : AppColors.divider,
+                                foregroundColor: isLiked
+                                    ? AppColors.primary
+                                    : AppColors.white,
                               ),
                             ),
                           ),
@@ -145,21 +196,23 @@ class EventDetailsPage extends StatelessWidget {
                           // Bookmark button
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                explorerProvider.toggleBookmarkEvent(eventId);
-                              },
+                              onPressed: () => explorerProvider
+                                  .toggleBookmarkEvent(event.id),
                               icon: Icon(
-                                event.isBookmarked
+                                isBookmarked
                                     ? Icons.bookmark
                                     : Icons.bookmark_border,
                               ),
                               label: Text(
-                                event.isBookmarked ? 'Bookmarked' : 'Bookmark',
+                                isBookmarked ? 'Bookmarked' : 'Bookmark',
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: event.isBookmarked
+                                backgroundColor: isBookmarked
                                     ? AppColors.accent
                                     : AppColors.divider,
+                                foregroundColor: isBookmarked
+                                    ? AppColors.primary
+                                    : AppColors.white,
                               ),
                             ),
                           ),
@@ -173,8 +226,8 @@ class EventDetailsPage extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Opening tickets...'),
+                              SnackBar(
+                                content: Text('Opening ${event.ticketUrl}...'),
                               ),
                             );
                           },
@@ -197,9 +250,9 @@ class EventDetailsPage extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -259,16 +312,14 @@ class EventDetailsPage extends StatelessWidget {
   List<Widget> _buildLineupList(
     BuildContext context,
     List<LineupArtist> lineup,
-    ExplorerProvider explorerProvider,
   ) {
     return lineup.map((artist) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: GestureDetector(
           onTap: () {
-            Navigator.of(
-              context,
-            ).pushNamed('/artist-profile', arguments: artist.artistId);
+            // Navigate to artist profile if needed
+            // Navigator.of(context).pushNamed('/artist-profile', arguments: artist.artistId);
           },
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -278,7 +329,15 @@ class EventDetailsPage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(artist.imageUrl, style: const TextStyle(fontSize: 32)),
+                CircleAvatar(
+                  backgroundColor: AppColors.divider,
+                  backgroundImage: artist.imageUrl.isNotEmpty
+                      ? NetworkImage(artist.imageUrl)
+                      : null,
+                  child: artist.imageUrl.isEmpty
+                      ? const Icon(Icons.person, color: Colors.white)
+                      : null,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

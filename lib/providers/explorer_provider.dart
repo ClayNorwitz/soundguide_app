@@ -1,209 +1,204 @@
-import 'package:flutter/foundation.dart';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:soundguide_app/models/event_models.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ExplorerProvider extends ChangeNotifier {
-  final Set<String> _bookmarkedEventIds = {};
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+
   final Set<String> _followedArtistIds = {};
-  final Map<String, int> _eventLikes = {}; // eventId -> like count
-  final Set<String> _createdEventIds = {}; // Track events created by organiser
+  final Set<String> _likedEventIds = {};
+  final Set<String> _bookmarkedEventIds = {};
 
-  // Mock data
-  late List<Event> _events;
-  late List<Artist> _artists;
+  bool isEventLiked(String id) => _likedEventIds.contains(id);
+  bool isEventBookmarked(String id) => _bookmarkedEventIds.contains(id);
 
-  ExplorerProvider() {
-    _initializeMockData();
-  }
-
-  void _initializeMockData() {
-    // Mock venues
-    final technoClub = Venue(
-      id: 'venue-1',
-      name: 'Electric Haven',
-      location: 'Downtown',
-      address: '123 Main St, City',
-      latitude: 40.7128,
-      longitude: -74.0060,
-      capacity: 2000,
-    );
-
-    final outdoorVenue = Venue(
-      id: 'venue-2',
-      name: 'Sunset Park',
-      location: 'Waterfront',
-      address: '456 Beach Ave, City',
-      latitude: 40.7580,
-      longitude: -73.9855,
-      capacity: 5000,
-    );
-
-    // Mock artists
-    _artists = [
-      Artist(
-        id: 'artist-1',
-        name: 'Luna Echo',
-        genre: 'Techno',
-        bio: 'Pioneering electronic music artist with a hypnotic sound.',
-        imageUrl: '🎤',
-        followers: 15000,
-        socialLinks: ['@lunaecho'],
-      ),
-      Artist(
-        id: 'artist-2',
-        name: 'Sonic Drift',
-        genre: 'House',
-        bio: 'High-energy house producer pushing boundaries.',
-        imageUrl: '🎧',
-        followers: 22000,
-        socialLinks: ['@sonicdrift'],
-      ),
-      Artist(
-        id: 'artist-3',
-        name: 'Neon Pulse',
-        genre: 'Synthwave',
-        bio: 'Retro-futuristic synth sounds from the future.',
-        imageUrl: '🎹',
-        followers: 18000,
-        socialLinks: ['@neonpulse'],
-      ),
-      Artist(
-        id: 'artist-4',
-        name: 'Deep Vibes',
-        genre: 'Deep House',
-        bio: 'Smooth, soulful deep house for the late night crowd.',
-        imageUrl: '🎼',
-        followers: 12000,
-        socialLinks: ['@deepvibes'],
-      ),
-    ];
-
-    // Mock events
-    _events = [
-      Event(
-        id: 'event-1',
-        title: 'Neon Nights Festival',
-        description:
-            'An immersive electronic music experience featuring international DJs.',
-        dateTime: DateTime.now().add(const Duration(days: 7)),
-        venue: technoClub,
-        lineup: [
-          LineupArtist(
-            artistId: 'artist-1',
-            name: 'Luna Echo',
-            genre: 'Techno',
-            imageUrl: '🎤',
-            startTime: '22:00',
-            endTime: '23:30',
-          ),
-          LineupArtist(
-            artistId: 'artist-2',
-            name: 'Sonic Drift',
-            genre: 'House',
-            imageUrl: '🎧',
-            startTime: '23:45',
-            endTime: '01:30',
-          ),
-        ],
-        imageUrl: '🎉',
-        ticketPrice: 35.0,
-        ticketUrl: 'https://tickets.example.com/neon-nights',
-        isApproved: true,
-      ),
-      Event(
-        id: 'event-2',
-        title: 'Sunset Vibes',
-        description: 'Outdoor electronic music festival at the waterfront.',
-        dateTime: DateTime.now().add(const Duration(days: 14)),
-        venue: outdoorVenue,
-        lineup: [
-          LineupArtist(
-            artistId: 'artist-3',
-            name: 'Neon Pulse',
-            genre: 'Synthwave',
-            imageUrl: '🎹',
-            startTime: '19:00',
-            endTime: '20:30',
-          ),
-          LineupArtist(
-            artistId: 'artist-4',
-            name: 'Deep Vibes',
-            genre: 'Deep House',
-            imageUrl: '🎼',
-            startTime: '20:45',
-            endTime: '22:30',
-          ),
-        ],
-        imageUrl: '🌅',
-        ticketPrice: 45.0,
-        ticketUrl: 'https://tickets.example.com/sunset-vibes',
-      ),
-    ];
-  }
-
-  // Getters
-  List<Event> get events => _events.where((event) => event.isApproved).toList();
-  List<Event> get unapprovedEvents =>
-      _events.where((event) => !event.isApproved).toList();
-  List<Artist> get artists => _artists;
-  Set<String> get bookmarkedEventIds => _bookmarkedEventIds;
   Set<String> get followedArtistIds => _followedArtistIds;
 
-  // Methods
-  void toggleBookmarkEvent(String eventId) {
-    final event = _events.firstWhere((e) => e.id == eventId);
-    if (_bookmarkedEventIds.contains(eventId)) {
-      _bookmarkedEventIds.remove(eventId);
-      event.isBookmarked = false;
+  final List<Artist> _artists = [
+    Artist(
+      id: 'artist-1',
+      name: 'Luna Echo',
+      genre: 'Techno',
+      bio: 'Pioneering electronic music artist with a hypnotic sound.',
+      imageUrl: '🎤',
+      followers: 15000,
+      socialLinks: ['@lunaecho'],
+    ),
+    Artist(
+      id: 'artist-2',
+      name: 'Sonic Drift',
+      genre: 'House',
+      bio: 'High-energy house producer pushing boundaries.',
+      imageUrl: '🎧',
+      followers: 22000,
+      socialLinks: ['@sonicdrift'],
+    ),
+  ];
+
+  List<Artist> get artists => _artists;
+
+  // --- STREAMS ---
+
+  Stream<Event> getEventStream(String eventId) {
+    return _db.collection('events').doc(eventId).snapshots().map((doc) {
+      if (!doc.exists) throw Exception("Event not found");
+      return Event.fromMap(doc.data()!);
+    });
+  }
+
+  void toggleLikeEvent(String eventId) {
+    final docRef = _db.collection('events').doc(eventId);
+
+    if (_likedEventIds.contains(eventId)) {
+      _likedEventIds.remove(eventId);
+      docRef.update({'likes': FieldValue.increment(-1)});
     } else {
-      _bookmarkedEventIds.add(eventId);
-      event.isBookmarked = true;
+      _likedEventIds.add(eventId);
+      docRef.update({'likes': FieldValue.increment(1)});
     }
     notifyListeners();
   }
 
-  void likeEvent(String eventId) {
-    _eventLikes[eventId] = (_eventLikes[eventId] ?? 0) + 1;
-    final event = _events.firstWhere((e) => e.id == eventId);
-    event.likes = _eventLikes[eventId]!;
+  void toggleBookmarkEvent(String eventId) {
+    if (_bookmarkedEventIds.contains(eventId)) {
+      _bookmarkedEventIds.remove(eventId);
+    } else {
+      _bookmarkedEventIds.add(eventId);
+    }
     notifyListeners();
   }
 
-  void unlikeEvent(String eventId) {
-    if ((_eventLikes[eventId] ?? 0) > 0) {
-      _eventLikes[eventId] = _eventLikes[eventId]! - 1;
-      final event = _events.firstWhere((e) => e.id == eventId);
-      event.likes = _eventLikes[eventId]!;
+  // For Event Goers (Only shows approved)
+  Stream<List<Event>> get approvedEventsStream => _db
+      .collection('events')
+      .where('isApproved', isEqualTo: true)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Event.fromMap(doc.data())).toList(),
+      );
+
+  // For Admins (THE MISSING GETTER - Shows only unapproved)
+  Stream<List<Event>> get unapprovedEventsStream => _db
+      .collection('events')
+      .where('isApproved', isEqualTo: false)
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Event.fromMap(doc.data())).toList(),
+      );
+
+  // Stream for Admins (Shows everything)
+  Stream<List<Event>> get allEventsStream => _db
+      .collection('events')
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => Event.fromMap(doc.data())).toList(),
+      );
+
+  Stream<List<Event>> get myEventsStream {
+    final user = FirebaseAuth.instance.currentUser;
+
+    // If no user is logged in, return an empty list
+    if (user == null) {
+      return Stream.value([]);
+    }
+
+    return _db
+        .collection('events')
+        .where('userId', isEqualTo: user.uid) // Only fetch my events
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Event.fromMap(doc.data())).toList(),
+        );
+  }
+
+  // --- METHODS ---
+
+  // Logic to upload image and save event
+  /// Logic to upload image (if provided) and save event to Firestore
+  Future<void> addEventToFirebase(Event event, File? imageFile) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Default to an empty string if no image is uploaded
+      String downloadUrl = '';
+
+      // 1. Only attempt upload if an image file actually exists
+      if (imageFile != null) {
+        // Create a unique reference path
+        String filePath =
+            'events/${DateTime.now().millisecondsSinceEpoch}_${event.id}.jpg';
+        Reference storageRef = _storage.ref().child(filePath);
+
+        // 2. Upload with metadata
+        SettableMetadata metadata = SettableMetadata(contentType: 'image/jpeg');
+
+        // Note: This might still fail if your Firebase Storage isn't set up (Blaze plan issue)
+        // but the code itself is now null-safe.
+        UploadTask uploadTask = storageRef.putFile(imageFile, metadata);
+
+        // 3. Wait for the upload to COMPLETE
+        TaskSnapshot snapshot = await uploadTask;
+        downloadUrl = await snapshot.ref.getDownloadURL();
+      }
+
+      // 4. Create the final object
+      // If imageFile was null, imageUrl will simply be ''
+      final finalEvent = Event(
+        id: event.id,
+        userId: event.userId,
+        title: event.title,
+        description: event.description,
+        dateTime: event.dateTime,
+        venue: event.venue,
+        lineup: event.lineup,
+        imageUrl: downloadUrl,
+        ticketPrice: event.ticketPrice,
+        ticketUrl: event.ticketUrl,
+        isApproved: false, // Default to false for admin workflow
+      );
+
+      // 5. Save to Firestore
+      await _db.collection('events').doc(finalEvent.id).set(finalEvent.toMap());
+    } catch (e) {
+      debugPrint("ADD EVENT ERROR: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
-  void toggleLikeEvent(String eventId) {
-    final isLiked = (_eventLikes[eventId] ?? 0) > 0;
-    if (isLiked) {
-      unlikeEvent(eventId);
-    } else {
-      likeEvent(eventId);
-    }
-  }
-
-  bool isEventLiked(String eventId) {
-    return (_eventLikes[eventId] ?? 0) > 0;
-  }
-
-  void toggleFollowArtist(String artistId) {
-    if (_followedArtistIds.contains(artistId)) {
-      _followedArtistIds.remove(artistId);
-    } else {
-      _followedArtistIds.add(artistId);
-    }
-    notifyListeners();
-  }
-
-  Event? getEventById(String eventId) {
+  // Admin approval method
+  Future<void> approveEvent(String eventId) async {
     try {
-      return _events.firstWhere((e) => e.id == eventId);
+      await _db.collection('events').doc(eventId).update({'isApproved': true});
+      notifyListeners();
     } catch (e) {
-      return null;
+      debugPrint("Error approving event: $e");
+      rethrow;
+    }
+  }
+
+  // Admin decline/delete method
+  Future<void> declineEvent(String eventId) async {
+    try {
+      await _db.collection('events').doc(eventId).delete();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error declining event: $e");
+      rethrow;
     }
   }
 
@@ -215,27 +210,16 @@ class ExplorerProvider extends ChangeNotifier {
     }
   }
 
-  List<Event> getBookmarkedEvents() {
-    return _events.where((e) => _bookmarkedEventIds.contains(e.id)).toList();
-  }
-
   List<Artist> getFollowedArtists() {
     return _artists.where((a) => _followedArtistIds.contains(a.id)).toList();
   }
 
-  void addEvent(Event event) {
-    _events.add(event);
-    _createdEventIds.add(event.id);
-    notifyListeners();
-  }
-
-  List<Event> getCreatedEvents() {
-    return _events.where((e) => _createdEventIds.contains(e.id)).toList();
-  }
-
-  void approveEvent(String eventId) {
-    final event = _events.firstWhere((e) => e.id == eventId);
-    event.isApproved = true;
+  void toggleFollowArtist(String artistId) {
+    if (_followedArtistIds.contains(artistId)) {
+      _followedArtistIds.remove(artistId);
+    } else {
+      _followedArtistIds.add(artistId);
+    }
     notifyListeners();
   }
 }

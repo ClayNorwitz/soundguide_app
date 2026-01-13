@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:soundguide_app/constants/app_colors.dart';
 import 'package:soundguide_app/models/event_models.dart';
 import 'package:soundguide_app/providers/explorer_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddEventPage extends StatefulWidget {
   const AddEventPage({super.key});
@@ -494,9 +495,11 @@ class _AddEventPageState extends State<AddEventPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    // Added async here
                     if (formKey.currentState!.validate()) {
-                      if (selectedDate == null) {
+                      final currentUser = FirebaseAuth.instance.currentUser;
+                      if (currentUser == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Please select an event date'),
@@ -515,50 +518,84 @@ class _AddEventPageState extends State<AddEventPage> {
                         return;
                       }
 
-                      // Combine date and time
-                      final eventDateTime = DateTime(
-                        selectedDate!.year,
-                        selectedDate!.month,
-                        selectedDate!.day,
-                        selectedTime!.hour,
-                        selectedTime!.minute,
-                      );
-
-                      // Create Event object
-                      final newEvent = Event(
-                        id: 'event-${DateTime.now().millisecondsSinceEpoch}',
-                        title: titleController.text.trim(),
-                        description: descriptionController.text.trim(),
-                        dateTime: eventDateTime,
-                        venue: Venue(
-                          id: 'venue-${DateTime.now().millisecondsSinceEpoch}',
-                          name: venueController.text.trim(),
-                          location: 'Location',
-                          address: venueController.text.trim(),
-                          latitude: 0.0,
-                          longitude: 0.0,
-                          capacity: 1000,
-                        ),
-                        lineup: [],
-                        imageUrl: artworkPath ?? '',
-                        artworkPath: artworkPath,
-                        ticketPrice: double.parse(ticketPriceController.text),
-                        ticketUrl: ticketUrlController.text.trim(),
-                      );
-
-                      // Add event to provider
-                      context.read<ExplorerProvider>().addEvent(newEvent);
-
-                      // Event created successfully
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Event created successfully!'),
-                          backgroundColor: AppColors.success,
+                      // 1. Show Loading Indicator
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.accent,
+                          ),
                         ),
                       );
 
-                      // Return to organiser dashboard
-                      Navigator.pop(context, true);
+                      try {
+                        // Combine date and time
+                        final eventDateTime = DateTime(
+                          selectedDate!.year,
+                          selectedDate!.month,
+                          selectedDate!.day,
+                          selectedTime!.hour,
+                          selectedTime!.minute,
+                        );
+
+                        // Create Event object
+                        final newEvent = Event(
+                          id: 'event-${DateTime.now().millisecondsSinceEpoch}',
+                          userId: currentUser.uid,
+                          title: titleController.text.trim(),
+                          description: descriptionController.text.trim(),
+                          dateTime: eventDateTime,
+                          venue: Venue(
+                            id: 'venue-${DateTime.now().millisecondsSinceEpoch}',
+                            name: venueController.text.trim(),
+                            location: 'Location',
+                            address: venueController.text.trim(),
+                            latitude: 0.0,
+                            longitude: 0.0,
+                            capacity: 1000,
+                          ),
+                          lineup: [],
+                          imageUrl:
+                              '', // Will be updated by the provider with cloud URL
+                          artworkPath: artworkPath,
+                          ticketPrice: double.parse(ticketPriceController.text),
+                          ticketUrl: ticketUrlController.text.trim(),
+                          isApproved:
+                              false, // Defaulting to false for admin workflow
+                        );
+
+                        // 2. Call the NEW method name from your ExplorerProvider
+                        await context
+                            .read<ExplorerProvider>()
+                            .addEventToFirebase(
+                              newEvent,
+                              artworkPath != null ? File(artworkPath!) : null,
+                            );
+
+                        if (mounted) {
+                          Navigator.pop(context); // Remove loading dialog
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Event submitted for approval!'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+
+                          Navigator.pop(context, true); // Return to dashboard
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          Navigator.pop(context); // Remove loading dialog
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -578,7 +615,6 @@ class _AddEventPageState extends State<AddEventPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
