@@ -597,13 +597,6 @@ class _LandingPageState extends State<LandingPage>
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/admin-dashboard');
-              },
-              child: const Text('Admin Dashboard'),
-            ),
           ],
         );
       },
