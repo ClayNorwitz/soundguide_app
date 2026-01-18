@@ -69,8 +69,9 @@ class AuthProvider extends ChangeNotifier {
       firebase_auth.UserCredential userCredential;
 
       if (isSignup) {
-        if (name == null || name.isEmpty)
+        if (name == null || name.isEmpty) {
           throw 'Name is required to create an account';
+        }
 
         userCredential = await _auth.createUserWithEmailAndPassword(
           email: email,
